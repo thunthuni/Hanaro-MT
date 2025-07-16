@@ -212,9 +212,7 @@ with tab1:
             base_col3.append("최대우대금리")
 
             for cond in prime_conditions:
-                print(one_row[cond])
                 if one_row[cond] == 1:
-                    #base_col3.append(cond)
                     prime_str = cond.split("_")[1]
                     if (prime_str == "예금자동이체") or (prime_str == "보험료자동이체") or (prime_str == "연금자동이체"):
                         base_col3.append("우대금리조건_" + prime_str + "_여부_조건")
