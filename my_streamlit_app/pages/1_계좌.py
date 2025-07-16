@@ -15,8 +15,9 @@ if "shared_df" not in st.session_state:
 
 df = st.session_state["shared_df"]
 
-df_account = df[['Acc_ID', 'Contract_Date_dt', 'Gender', 'Age', '연령대', 'Job', 'Family', 'Cancellation']]
+df_account = df[['Acc_ID', 'Contract_Date_dt', 'Gender', 'Age', '연령대', 'Job', 'Family', 'Cancellation', 'Marketing', '상품코드', '상품명']]
 df_account['Contract_Date_dt'] = pd.to_datetime(df_account['Contract_Date_dt'])
+df_account['Cancellation'] = df_account['Cancellation'].map({'no': 0, 'yes': 1})
 
 time_table = df_account.pivot_table(index='Contract_Date_dt', values = 'Acc_ID', aggfunc = 'count').reset_index()
 account_number_graph = px.line(
@@ -25,6 +26,7 @@ account_number_graph = px.line(
     y='Acc_ID',
     title='계좌 개수 변화 추이'
 )
+
 
 # account_number_graph.show()
 #################################################################
@@ -213,4 +215,121 @@ with tab1:
     with cols[2]:
         st.markdown("##### 직업")
         st.write(job_count)
+
+
+
+with tab2:
+
+    st.header("Analysis")
+
+    col1, divider, col2 = st.columns([1, 0.1, 2])
+
+    # 첫 번째 컨테이너: 드롭박스
+    with col1:
+        st.subheader("필터")
+
+
+        # — 성별 처리 —
+        st.markdown(
+            "<div style='margin:0 0 0 0;'>성별</div>",
+            unsafe_allow_html=True
+        )
+        genders = df_account['Gender'].unique().tolist()
+        
+        gender_cols = st.columns(len(genders))
+        selected_genders = []
+        for col, gender in zip(gender_cols, genders):
+            with col:
+                if st.checkbox(gender, value=False, key=f"gender_{gender}"):
+                    selected_genders.append(gender)
+
+
+        # — 연령대 처리 —
+        age_order = ['10대 이하','20대','30대','40대','50대','60대 이상']
+        ages = [a for a in age_order if a in df_account['연령대'].unique()]
+        selected_ages = st.multiselect("연령대 선택", options=ages, default=[])
+
+        # — 직업 처리 —
+        jobs = df_account['Job'].unique().tolist()
+        selected_jobs = st.multiselect("직업 선택", options=jobs, default=[])
+
+        # - 결혼 처리 -
+        st.markdown(
+            "<div style='margin:0 0 0 0;'>결혼유무</div>",
+            unsafe_allow_html=True
+        )
+        families = df_account['Family'].unique().tolist()
+        family_cols = st.columns(len(families)-1)
+        selected_families = []
+        for col, family in zip(family_cols, families):
+            with col:
+                if st.checkbox(family, value=False, key=f'family_{family}'):
+                    selected_families.append(family)
+
+        # - 마케팅 동의 처리 - 
+        st.markdown(
+            "<div style='margin:0 0 0 0;'>마케팅 동의</div>",
+            unsafe_allow_html=True
+        )
+        marketing_map = {1: '동의', 0: '비동의'}
+
+        marketings = df_account['Marketing'].unique().tolist()
+
+        marketing_cols = st.columns(len(marketings))
+        selected_marketings = []
+        for col, m in zip(marketing_cols, marketings):
+            with col:
+                if st.checkbox(marketing_map[m], value=False, key=f'marketing_{m}'):
+                    selected_marketings.append(m)
+
+    with divider:
+        st.markdown(
+            "<div style='border-left:1px solid #ccc; height:500px;'></div>",
+            unsafe_allow_html=True
+        )
+
+    with col2:
+        st.subheader("상품별 가입·해지 현황")
+
+        # 1) 필터링
+        df_f = df_account.copy()
+
+        # 성별 필터
+        if selected_genders:
+            df_f = df_f[df_f['Gender'].isin(selected_genders)]
+        # 연령대 필터
+        if selected_ages:
+            df_f = df_f[df_f['연령대'].isin(selected_ages)]
+        # 직업 필터
+        if selected_jobs:
+            df_f = df_f[df_f['Job'].isin(selected_jobs)]
+        # 마케팅 동의 필터
+        if selected_marketings:
+            df_f = df_f[df_f['Marketing'].isin(selected_marketings)]
+        # 결혼유무 필터
+        if selected_families:
+            df_f = df_f[df_f['Family'].isin(selected_families)]
+
+        # 2) 그룹별 집계
+        summary = (
+            df_f
+            .groupby(['상품코드','상품명'])
+            .agg(
+                가입자수 = ('Acc_ID','nunique'),
+                해지율   = ('Cancellation', lambda x: x.mean())  # cancellation이 1이면 해지
+            )
+            .reset_index()
+            .set_index('상품코드')
+        )
+
+        # 3) 화면에 출력
+        st.dataframe(
+            summary.style.format({'해지율': '{:.1%}'}),
+            use_container_width=True
+        )
+
+
+
+
+
 
