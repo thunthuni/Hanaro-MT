@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup
 
 from serpapi import GoogleSearch
 
+from datetime import datetime
 
 
 @st.cache_data
@@ -82,6 +83,13 @@ def get_products_df(df, chrun_df):
     return df[['상품코드', "상품명", "상품구분", "예금입출금방식", "상품별 해지율[%]", "은행코드", "은행명"]].drop_duplicates().sort_values(by='상품별 해지율[%]', ascending=False)
 
 
+
+######## 1_계좌 ###########
+# def get_account_df(df):
+
+
+
+######## 3_인사이트 ###########
 def crawling_news():
     url = 'https://news.naver.com/breakingnews/section/101/259'
     res = requests.get(url)
@@ -106,12 +114,7 @@ def crawling_news():
         results.append([title, link])
 
     return results
-
         
-
-from datetime import datetime
-
-
 
 def fetch_google_related_queries(keyword):
 
@@ -169,3 +172,4 @@ def fetch_google_trends_graph(keyword):
 
     except KeyError:
         return []
+    
