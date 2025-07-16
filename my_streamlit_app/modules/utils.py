@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup
 
 from serpapi import GoogleSearch
 
+from datetime import datetime
 
 
 @st.cache_data
@@ -92,6 +93,13 @@ df.drop(columns=["Acc_ID", "Contract_Date", "New_trsc_Amt", "Gender", "Age", "Jo
 """
 
 
+
+######## 1_계좌 ###########
+# def get_account_df(df):
+
+
+
+######## 3_인사이트 ###########
 def crawling_news():
     url = 'https://news.naver.com/breakingnews/section/101/259'
     res = requests.get(url)
@@ -116,12 +124,7 @@ def crawling_news():
         results.append([title, link])
 
     return results
-
         
-
-from datetime import datetime
-
-
 
 def fetch_google_related_queries(keyword):
 
@@ -179,3 +182,4 @@ def fetch_google_trends_graph(keyword):
 
     except KeyError:
         return []
+    
