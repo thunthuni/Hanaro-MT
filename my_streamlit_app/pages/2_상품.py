@@ -63,13 +63,17 @@ with tab1:
         st.session_state["end_date"] = date(2024, 6, 1)
 
     # ✅ 날짜 선택 위젯
-    st.date_input(
+    selected_range = st.date_input(
         "**📅 날짜 범위 선택**",
         value=(st.session_state["start_date"], st.session_state["end_date"]),
         #min_value=df["날짜"].min().date(),
         #max_value=today,
         key="date_range"  # key는 따로 지정
     )
+    # 사용자가 직접 변경한 경우에만 업데이트
+    if (selected_range != (st.session_state["start_date"], st.session_state["end_date"])) and (len(selected_range) == 2):
+        st.session_state["start_date"], st.session_state["end_date"] = selected_range
+
     c1, c2, c3, c4, _ = st.columns([1, 1, 1, 1, 6])
     with c1:
         st.button("전체", on_click=set_range, args=[15], use_container_width=True)
@@ -80,6 +84,7 @@ with tab1:
     with c4:
         st.button("3개월", on_click=set_range, args=[3], use_container_width=True)
 
+    #st.session_state["start_date"], st.session_state["end_date"] = st.session_state["date_range"]
     start_date, end_date = st.session_state["start_date"], st.session_state["end_date"]
 
 
