@@ -63,22 +63,22 @@ with tab1:
         st.session_state["end_date"] = date(2024, 6, 1)
 
     # ✅ 날짜 선택 위젯
-        st.date_input(
-            "**📅 날짜 범위 선택**",
-            value=(st.session_state["start_date"], st.session_state["end_date"]),
-            #min_value=df["날짜"].min().date(),
-            #max_value=today,
-            key="date_range"  # key는 따로 지정
-        )
-        c1, c2, c3, c4, _ = st.columns([1, 1, 1, 1, 6])
-        with c1:
-            st.button("전체", on_click=set_range, args=[15], use_container_width=True)
-        with c2:
-            st.button("1년", on_click=set_range, args=[12], use_container_width=True)
-        with c3:
-            st.button("6개월", on_click=set_range, args=[6], use_container_width=True)
-        with c4:
-            st.button("3개월", on_click=set_range, args=[3], use_container_width=True)
+    st.date_input(
+        "**📅 날짜 범위 선택**",
+        value=(st.session_state["start_date"], st.session_state["end_date"]),
+        #min_value=df["날짜"].min().date(),
+        #max_value=today,
+        key="date_range"  # key는 따로 지정
+    )
+    c1, c2, c3, c4, _ = st.columns([1, 1, 1, 1, 6])
+    with c1:
+        st.button("전체", on_click=set_range, args=[15], use_container_width=True)
+    with c2:
+        st.button("1년", on_click=set_range, args=[12], use_container_width=True)
+    with c3:
+        st.button("6개월", on_click=set_range, args=[6], use_container_width=True)
+    with c4:
+        st.button("3개월", on_click=set_range, args=[3], use_container_width=True)
 
     start_date, end_date = st.session_state["start_date"], st.session_state["end_date"]
 
