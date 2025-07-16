@@ -23,13 +23,6 @@ def load_data(path="data/df_.xlsx"):
 def filter_by_date(df, start_date, end_date, date_col="Contract_Date_dt"):
     return df[(df[date_col].dt.date >= start_date) & (df[date_col].dt.date <= end_date)]
 
-
-def get_products_df(df):
-    df["상품별해지율[%]"] = round(df['상품별해지율'] * 100, 2)
-    return df[['상품코드', "상품명", "상품구분", "상품별해지율[%]", "은행코드", "은행명"]].drop_duplicates().sort_values(by='상품별해지율[%]', ascending=False)
-
-
-
 def get_bank_df(df):
     bank_cols = ['은행코드',	'은행명',	'상품코드',	'상품명',	'상품일련번호',	'계약기간개월수_최소구간',	'계약기간개월수_최대구간',	'가입금액_최소구간',	'가입금액_최대구간',
                 '통장거치식_신규가입금액_단위',	'적립식_월부금_단위',	'상품개요_설명',	'신규채널',	'해지채널',	'상품그룹코드',	'상품그룹명',	'예금입출금방식',	'만기여부',	'이자지급방법',
@@ -83,16 +76,10 @@ def get_prime_count(df):
     return sorted_prime_cnt
 
 
-"""
-
-
-"""
-
-
-"""
-df.drop(columns=["Acc_ID", "Contract_Date", "New_trsc_Amt", "Gender", "Age", "Job",	"Family", "Cancellation", "Card", 'Overdue', 
-                            'Unsubscribe', 'Telecom', 'Marketing', '연령대', 'Cancellation_bin']).drop_duplicates()
-"""
+def get_products_df(df, chrun_df):
+    df = pd.merge(df, chrun_df, on="상품코드", how="left")
+    df["상품별 해지율[%]"] = round(df['상품별해지율_filtered'] * 100, 2)
+    return df[['상품코드', "상품명", "상품구분", "예금입출금방식", "상품별 해지율[%]", "은행코드", "은행명"]].drop_duplicates().sort_values(by='상품별 해지율[%]', ascending=False)
 
 
 def crawling_news():
