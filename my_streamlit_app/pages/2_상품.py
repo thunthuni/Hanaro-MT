@@ -1,7 +1,8 @@
 import streamlit as st
 import plotly.express as px
+import pandas as pd
 
-from modules.utils import load_data, get_products_df
+from modules.utils import load_data, get_products_df, get_prime_df, get_prime_count
 
 
 #################################################################
@@ -15,6 +16,10 @@ df_prod = get_products_df(df)
 df_yuji = df[df["Cancellation_bin"] == 1]
 df_cate = df_yuji.pivot_table(index="상품구분", values="상품코드", aggfunc="count").reset_index()
 
+df_prime = get_prime_df(df)
+prime_cnt = get_prime_count(df_prime)
+
+
 churn_rate = df["Cancellation_bin"].mean()
 yuji_count = len(df[df["Cancellation_bin"] == 0])
 #################################################################
@@ -25,7 +30,6 @@ st.set_page_config(
     layout="wide",  # ✅ 화면 최대한 활용하기 위해 wide로 지정!!!
     initial_sidebar_state="expanded"
 )
-
 
 
 
@@ -51,7 +55,7 @@ with tab1:
     #### 레이아웃 2 #####################################################
     col2_1, _, col2_2, _, col2_3 = st.columns([1, 0.2, 1, 0.2, 1])
     with col2_1 :
-        st.subheader(f'상품구분 별 점유율')
+        st.subheader(f'📊 상품구분 별 점유율')
         fig = px.pie(data_frame = df_cate, values='상품코드', names='상품구분')#, title="상품구분 별 점유율")
         st.plotly_chart(fig, use_container_width=True)
 
@@ -60,9 +64,12 @@ with tab1:
         st.subheader(f'👨‍👩‍👧‍👦 유지 고객수: {round(yuji_count)} 명')
 
     with col2_3:
-        # TODO
-        st.subheader(f'전체 상품 우대 조건 유형 수')
-
+        st.subheader(f'🔥전체 상품 우대 조건 유형 수')
+        df_prime_cnt = pd.DataFrame(prime_cnt).reset_index()    
+        print(df_prime_cnt)
+        df_prime_cnt.columns = ["우대 조건_original", "Count"]
+        df_prime_cnt['우대 조건'] = df_prime_cnt["우대 조건_original"].str.extract(r'우대금리조건_(.+?)_여부')
+        st.dataframe(df_prime_cnt[["우대 조건", "Count"]], hide_index=True)
 
     ####################################################################
 
