@@ -20,6 +20,9 @@ def load_data(path="data/df_.xlsx"):
     df = pd.read_excel(full_path, index_col=0)
     return df
 
+def filter_by_date(df, start_date, end_date, date_col="Contract_Date_dt"):
+    return df[(df[date_col].dt.date >= start_date) & (df[date_col].dt.date <= end_date)]
+
 
 def get_products_df(df):
     df["상품별해지율[%]"] = round(df['상품별해지율'] * 100, 2)
