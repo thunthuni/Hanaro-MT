@@ -20,6 +20,7 @@ df_account['Contract_Date_dt'] = pd.to_datetime(df_account['Contract_Date_dt'])
 df_account['Cancellation'] = df_account['Cancellation'].map({'no': 0, 'yes': 1})
 
 time_table = df_account.pivot_table(index='Contract_Date_dt', values = 'Acc_ID', aggfunc = 'count').reset_index()
+
 account_number_graph = px.line(
     time_table,
     x='Contract_Date_dt',
@@ -32,21 +33,19 @@ account_number_graph = px.line(
 #################################################################
 
 st.set_page_config(
-    page_title="예·적금 상품 대시보드",
+    page_title="상품 설계 어시스턴트",
+    page_icon="📊",
     layout="wide", 
     initial_sidebar_state="expanded"
 )
 
-
-st.title("계좌 정보")
+st.title("🧾 계좌 현황")
 
 tab1, tab2= st.tabs(['Overview' , 'Analysis'])
 
 with tab1:
     st.header("Overview")
-    num_prod = df["Acc_ID"].nunique()
-    st.success(f"총 {num_prod}개의 계좌가 등록되어 있습니다.")
-    
+
     today = date(2024, 6, 1) 
 
     def set_range(start_offset):
@@ -82,9 +81,24 @@ with tab1:
     start_date, end_date = st.session_state["start_date"], st.session_state["end_date"]
 
     
-    # TODO
+    filtered_account_info = filter_by_date(df_account, start_date, end_date)
+
+    num_prod = filtered_account_info["Acc_ID"].nunique()
+    st.success(f"총 {num_prod}개의 계좌가 등록되어 있습니다.")
+
     # 선택된 날짜 기반으로 데이터프레임 필터링
     filtered_num_graph = filter_by_date(time_table, start_date, end_date)
+    
+    prev_month_start = (end_date - relativedelta(months=1)).replace(day=1)
+    prev_month_end = prev_month_start + relativedelta(months=1) - relativedelta(days=1)
+    prev_month_df = filter_by_date(filtered_num_graph, prev_month_start, prev_month_end)
+    prev_month_sum = prev_month_df["Acc_ID"].sum()
+
+    curr_month_start = (end_date).replace(day=1)
+    curr_month_end = curr_month_start + relativedelta(months=1) - relativedelta(days=1)
+    curr_month_df = filter_by_date(filtered_num_graph, curr_month_start, curr_month_end)
+    curr_month_sum = curr_month_df["Acc_ID"].sum()
+
     account_number_graph = px.line(
         filtered_num_graph,
         x='Contract_Date_dt',
@@ -93,6 +107,9 @@ with tab1:
         'Contract_Date_dt': '개설일자',    # x축 이름
         'Acc_ID':            '계좌수 (개)' # y축 이름 + 단위
     }
+
+
+
     )
     st.markdown(
         """
@@ -121,14 +138,16 @@ with tab1:
 
 
     # 고정되는 날짜 기간
-    st.markdown(
-        f"""
-        <div id="fixed-header">
-        선택된 기간: {start_date} ~ {end_date}
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    
+    #st.markdown(
+    #    f"""
+    #    <div id="fixed-header">
+    #    선택된 기간: {start_date} ~ {end_date}
+    #    </div>
+    #    """,
+    #    unsafe_allow_html=True,
+    #)   
+    
 
 
     st.markdown(
@@ -144,13 +163,31 @@ with tab1:
 
 
     ############## 계좌 개수 ############## 
-    st.subheader(f'계좌 개수 변화 추이')
-    st.write(account_number_graph)
+    col_1, _, col_2 = st.columns([3, 0.1, 1])
+    with col_1:
+        st.subheader(f'계좌 개수 변화 추이')
+        st.markdown(f'{end_date} 기준')
 
+        diff_month = curr_month_sum - prev_month_sum
+        if diff_month < 0:
+            st.markdown(f"**전월대비🔽{abs(diff_month)}명**")
+        else:
+            st.markdown(f"**전월대비🔼{abs(diff_month)}명**")
+        st.write(account_number_graph)
+
+    with col_2:
+        for_yuji_df = filter_by_date(df, date(2023, 3, 1), end_date)
+        df_yuji = for_yuji_df[for_yuji_df["Cancellation_bin"] == 0]
+        yuji_count = len(df_yuji)
+        st.subheader('')
+        st.subheader('')
+        st.subheader('')
+        st.subheader('')
+        st.subheader(f'🆕 신규 고객수: {round(filtered_num_graph["Acc_ID"].sum())} 명')
+        st.subheader(f'👨‍👩‍👧‍👦 유지 고객수: {round(yuji_count)} 명')
 
     ############## 계좌 세부 ##############
     
-    filtered_account_info = filter_by_date(df_account, start_date, end_date)
 
     # 성별
     pie1 = (
@@ -202,19 +239,19 @@ with tab1:
         """,
         unsafe_allow_html=True
     )
-    cols = st.columns(3)
+    cols = st.columns([1, 0.2, 1, 0.2, 1])
 
     with cols[0]:
         st.markdown("##### 성별 ")  
         st.plotly_chart(fig, use_container_width=True)
 
-    with cols[1]:
+    with cols[2]:
         st.markdown("##### 연령대")
         st.write(age_bar)
 
-    with cols[2]:
+    with cols[4]:
         st.markdown("##### 직업")
-        st.write(job_count)
+        st.dataframe(job_count, hide_index=True)
 
 
 
@@ -255,7 +292,7 @@ with tab2:
 
         # - 결혼 처리 -
         st.markdown(
-            "<div style='margin:0 0 0 0;'>결혼유무</div>",
+            "<div style='margin:0 0 0 0;'>결혼 유무</div>",
             unsafe_allow_html=True
         )
         families = df_account['Family'].unique().tolist()
@@ -289,6 +326,7 @@ with tab2:
         )
 
     with col2:
+        # TODO: BUG 일단 PASS
         st.subheader("상품별 가입·해지 현황")
 
         # 1) 필터링
@@ -318,6 +356,7 @@ with tab2:
                 가입자수 = ('Acc_ID','nunique'),
                 해지율   = ('Cancellation', lambda x: x.mean())  # cancellation이 1이면 해지
             )
+            .rename(columns={"가입자수": "가입자수 (명)"})
             .reset_index()
             .set_index('상품코드')
         )

@@ -9,8 +9,14 @@ from modules.utils import crawling_news, fetch_google_related_queries, fetch_goo
 
 
 
+st.set_page_config(
+    page_title="상품 설계 어시스턴트",
+    page_icon="📊",
+    layout="wide", 
+    initial_sidebar_state="expanded"
+)
 
-st.set_page_config(page_title="Trends & News", layout="wide")
+
 st.title("📈 Trends & News")
 
 ################ 금융뉴스
@@ -56,7 +62,7 @@ st.markdown(news_html, unsafe_allow_html=True)
 
 
 ################ 키워드 검색량 
-
+st.markdown("---")
 st.subheader("🔍 구글 트렌드 키워드 검색")
 
 keyword = st.text_input("검색어를 입력하세요", value="하나은행")

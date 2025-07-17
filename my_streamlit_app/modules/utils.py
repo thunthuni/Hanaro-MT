@@ -117,7 +117,6 @@ def crawling_news():
         
 
 def fetch_google_related_queries(keyword):
-
     params = {
         "q": keyword,
         "engine": "google_trends",

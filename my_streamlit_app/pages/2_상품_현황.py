@@ -29,13 +29,15 @@ df_bank = get_bank_df(df)
 #################################################################
 
 st.set_page_config(
-    page_title="예·적금 상품 대시보드",
-    layout="wide",  
+    page_title="상품 설계 어시스턴트",
+    page_icon="📊",
+    layout="wide", 
     initial_sidebar_state="expanded"
 )
 
 
-st.title("예·적금 상품")
+
+st.title("📈예·적금 상품 현황")
 
 # 탭 생성
 tab1, tab2= st.tabs(['Overview' , 'Analysis'])
@@ -228,7 +230,9 @@ with tab1:
         st.dataframe(df_prod_info[base_col3].sort_values(by="상품일련번호"), hide_index=True)
 
         #TODO
-        st.markdown(f'**타행 유사 상품:** (TODO)')
+        #st.markdown(f'**타행 유사 상품:** (TODO)')
+
+
 
 
 
