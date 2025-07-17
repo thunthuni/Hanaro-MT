@@ -1,10 +1,10 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, date, timedelta
-from dateutil.relativedelta import relativedelta
 
 from modules.utils import load_data
 from modules.model import load_model, generate_derived_vars, get_economics_info
+from catboost import CatBoostClassifier, Pool
 
 #################################################################
 # 데이터가 세션에 없으면 불러와서 저장
@@ -25,33 +25,26 @@ _thres = _meta["threshold"]
 #################################################################
 
 st.set_page_config(
-    page_title="대시보드",
+    page_title="상품 설계 어시스턴트",
+    page_icon="📊",
     layout="wide",  # ✅ 화면 최대한 활용하기 위해 wide로 지정!!!
     initial_sidebar_state="expanded"
 )
 
-#st.sidebar.title("📂 분석 메뉴")
-#st.sidebar.write("사이드바 내용입니다.")
-
-st.title("중도해지 RISK 예측")
-# TODO
-st.write("어쩌구저쩌구 변수를 입력 하고 외부 데이터를 참조하여.. 해당 특성을 가진 고객+상품의 이탈 risk를 예측할 수 있습니다.")
+st.title("📊 중도 해지 리스크 예측")
+st.write("선택한 변수와 외부 금융 지표를 활용하여 중도 해지 리스크를 예측할 수 있습니다.")
 st.markdown("---")
-
-
-
 
 #####################################################################################
 ########## 화면 분할하여 왼쪽은 선택 창 #################################################
 
 col1, divider, col2 = st.columns([1, 0.1, 2])
 
-
 # 첫 번째 컨테이너: 드롭박스
 with col1:
 
     # 날짜 선택창 (오늘 날짜를 2024년 6월 1일로 가정)
-    today = date(2024, 6, 1) # 현재 시점을 24년 6월 1일로 가정
+    today = date(2025, 7, 17) # 현재 시점을 24년 6월 1일로 가정
 
     # ✅ 콜백 함수 정의
     def set_range(start_offset):
@@ -63,10 +56,10 @@ with col1:
 
     # ✅ 날짜 선택 위젯
     selected_range = st.date_input(
-        "**📅 분석 대상 계약의 가입일을 입력해주세요.**",
+        "**📅 예측 대상 계약의 가입일을 입력해주세요.**",
         value=st.session_state["model_date"],
-        #min_value=df["날짜"].min().date(),
-        max_value=today,  # TODO
+        min_value=df["Contract_Date_dt"].min(),
+        max_value=today, 
         key="date_model"  # key는 따로 지정
     )
     # 사용자가 직접 변경한 경우에만 업데이트
@@ -102,7 +95,7 @@ with col1:
 
     # - 결혼 처리 -
     st.markdown(
-        "<div style='margin:0 0 0 0;'>결혼유무</div>",
+        "<div style='margin:0 0 0 0;'>결혼 유무</div>",
         unsafe_allow_html=True
     )
     families = df['Family'].unique().tolist()
@@ -230,8 +223,7 @@ with col1:
         or not selected_overdues:
             st.warning("❗하나 이상의 값을 선택해주세요.")
         else:
-            with st.spinner("예측 모델을 실행 중입니다... 잠시만 기다려주세요 ⏳"):
-
+            with st.spinner("예측 모델을 실행 중입니다. 잠시만 기다려주세요 ⏳"):
 
                 model_cols = ['New_trsc_Amt', 'Gender', 'Age', 'Job', 'Family', 'Card', 'Overdue', 
                             'Unsubscribe', 'Marketing', '기본금리', '우대금리조건여부', '우대금리조건_개수', '최대우대금리',
@@ -289,11 +281,64 @@ with col1:
                 level2 = (1-_thres)/2
                 level = "저위험군" if prob_mean < level1 else ("중위험군" if prob_mean < level2 else "고위험군")
 
+                # CatBoost 전용 SHAP 값 구하기 (개별 샘플 대상)
+                pool = Pool(model_df, cat_features=_cat_cols)
+                shap_vals = model["model"].get_feature_importance(type='ShapValues', data=pool).mean(axis=0)
+                # 음수면 해지 방어 요인
+                # 양수면 해지 리스크 요인
+                # 0~12가 보여줄 변수
+
+                df_shap = pd.DataFrame([shap_vals[:-1]], columns=model_cols).drop(columns=['코스피 종가_mean_3m', '코스닥 종가_mean_3m', 'S&P 종가_mean_3m', '나스닥 종가_mean_3m',
+                            '비트코인 종가_mean_3m', '금 종가_mean_3m', '달러 환율_mean_3m', '미국 국채_mean_3m',
+                            '일본 국채_mean_3m', '유로 국채_mean_3m', '영국 국채_mean_3m', '코스피 종가_std_3m',
+                            '코스닥 종가_std_3m', 'S&P 종가_std_3m', '나스닥 종가_std_3m', '비트코인 종가_std_3m',
+                            '금 종가_std_3m', '달러 환율_std_3m', '미국 국채_std_3m', '일본 국채_std_3m',
+                            '유로 국채_std_3m', '영국 국채_std_3m', '코스피 종가_slope_3m', '코스닥 종가_slope_3m',
+                            'S&P 종가_slope_3m', '나스닥 종가_slope_3m', '비트코인 종가_slope_3m',
+                            '금 종가_slope_3m', '달러 환율_slope_3m', '미국 국채_slope_3m', '일본 국채_slope_3m',
+                            '유로 국채_slope_3m', '영국 국채_slope_3m', 'New_trsc_Amt_log', 'Age',
+                            '금리차이', '금액변동성', '금리x연령'])
+                df_shap_t = df_shap.T
+                df_shap_t = df_shap_t.sort_values(by=0, ascending=False)
+
+                df_shap_high = df_shap_t[df_shap_t[0] >= 0]
+                df_shap_low = df_shap_t[df_shap_t[0] < 0]
+
                 with col2:
-                    # TODO
-                    st.header(f"입력한 데이터를 기반으로 추정한{level}")
+                    if prob_mean < _thres:
+                        norm_prob = prob_mean * 0.5 / _thres
+                    else:
+                        norm_prob = 0.5 + ( 0.5 * ((prob_mean - _thres) / (1 - _thres)) )
 
+                    st.subheader(f"입력한 데이터를 기반으로 추정한 중도 해지 리스크:")
+                    st.subheader(f"➡️ {level}, {round(norm_prob*100, 2)} %")
+                    st.markdown("---")
 
+                    mapping = {
+                        "Family": "결혼 유무",
+                        "Marketing": "마케팅 동의",
+                        "Age_group": "연령대",
+                        "Overdue": "연체 여부",
+                        "New_trsc_Amt": "신규 계좌 개설 입금액",
+                        "Job": "직업",
+                        "Gender": "성별",
+                        "Card": "계좌 연결 카드 수",
+                        "Unsubscribe": "알림 서비스 여부"
+                    }
+
+                    col1_1, col2_1 = st.columns([1, 1])
+                    with col1_1:
+                        st.subheader("해지 리스크 상승 요인")
+                        st.markdown("(해지 확률을 높이는 방향으로 기여한 변수 상위순)")
+                        for idx in df_shap_high.index:
+                            st.markdown(f"- {mapping.get(idx, idx)}")
+                            
+                    with col2_1:
+                        st.subheader("해지 리스크 감소 요인")
+                        st.markdown("(해지 확률을 낮추는 방향으로 기여한 변수 상위순)")
+                        for idx in df_shap_low.iloc[::-1].index:
+                            st.markdown(f"- {mapping.get(idx, idx)}")
+                            
 with divider:
     st.markdown(
         "<div style='border-left:1px solid #ccc; height:1200px;'></div>",
